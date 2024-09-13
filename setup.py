@@ -43,6 +43,6 @@ setup(
     # Note that this is a string of words separated by whitespace, not a list.
     keywords='pytorch pretrained efficientdet efficientnet bifpn object detection',
     packages=find_packages(exclude=['data']),
-    install_requires=['torch >= 1.12.1', 'torchvision', 'timm >= 0.9.2', 'pycocotools>=2.0.2', 'omegaconf>=2.0'],
+    install_requires=['torch >= 1.12.1', 'torchvision', 'timm >= 0.9.2', 'pycocotools>=2.0.2', 'omegaconf>=2.0', 'semver'],
     python_requires='>=3.7',
 )

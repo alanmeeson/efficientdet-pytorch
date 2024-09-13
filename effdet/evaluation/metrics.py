@@ -1,4 +1,8 @@
+import semver
 import numpy as np
+
+if semver.compare(np.__version__, "2.0.0") >= 0:
+    np.float_ = np.float64
 
 
 def compute_precision_recall(scores, labels, num_gt):
