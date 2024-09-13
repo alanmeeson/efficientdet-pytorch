@@ -8,6 +8,19 @@ from typing import Dict
 
 
 @dataclass
+class PubLayNetCfg:
+    variant: str = None
+    parser: str = 'coco'
+    num_classes: int = 5  # {0: "Text", 1: "Title", 2: "List", 3:"Table", 4:"Figure"}
+    splits: Dict[str, dict] = None
+    splits: Dict[str, dict] = field(default_factory=lambda: dict(
+        train=dict(ann_filename='train.json', img_dir='train', has_labels=True),
+        val=dict(ann_filename='val.json', img_dir='val', has_labels=True),
+        test=dict(ann_filename='', img_dir='test', has_labels=False),
+    ))
+
+
+@dataclass
 class CocoCfg:
     variant: str = None
     parser: str = 'coco'
