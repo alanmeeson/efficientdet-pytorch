@@ -58,6 +58,7 @@ except ImportError:
 from effdet import create_model, unwrap_bench, create_loader, create_dataset, create_evaluator
 from effdet.data import resolve_input_config, SkipSubset
 from effdet.anchors import Anchors, AnchorLabeler
+from effdet.data.transforms import transforms_documents_train
 
 torch.backends.cudnn.benchmark = True
 
@@ -519,6 +520,22 @@ def create_datasets_and_loaders(
             model_config.num_classes,
             match_threshold=0.5,
         )
+
+    if (transform_train_fn is None) and ('laynet' in args.dataset):
+        if isinstance(input_config['input_size'], tuple):
+            img_size = input_config['input_size'][-2:]
+        else:
+            img_size = input_config['input_size']
+
+        transform_train_fn = transforms_documents_train(
+                img_size,
+                interpolation=args.train_interpolation or input_config['interpolation'],
+                use_prefetcher=args.prefetcher,
+                fill_color=input_config['fill_color'],
+                mean=input_config['mean'],
+                std=input_config['std']
+        )
+
 
     loader_train = create_loader(
         dataset_train,

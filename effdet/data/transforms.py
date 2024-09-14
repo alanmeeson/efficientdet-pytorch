@@ -216,6 +216,141 @@ class RandomFlip:
         return img, annotations
 
 
+class RandomRotate:
+
+    def __init__(self, degrees: float = 2, prob: float = 0.5, fill_color: tuple = (0, 0, 0)):
+        self.degrees = degrees
+        self.fill_color = fill_color
+        self.prob = prob
+
+    def _get_params(self):
+        do_rotate = random.random() < self.prob
+        degrees = self.degrees * ((random.random() - 0.5) * 2) if do_rotate else 0.0
+        return do_rotate, degrees
+
+    def __call__(self, img, annotations: dict):
+        do_rotate, degrees = self._get_params()
+        orig_image_size = img.size
+
+        def _rotate(boxes, image_size, degrees):
+            """
+            Rotate bounding boxes by a given angle around the center of the image.
+
+            Args:
+                boxes (numpy.ndarray): A numpy array of shape (N, 4), where each row is [y_min, x_min, y_max, x_max].
+                image_size (tuple): A tuple of (height, width) representing the size of the image.
+                degrees (float): The angle by which to rotate the bounding boxes (clockwise).
+
+            Returns:
+                numpy.ndarray: A numpy array of shape (N, 4), where each row is the rotated bounding box [new_y_min, new_x_min, new_y_max, new_x_max].
+            """
+            # Convert degrees to radians
+            radians = np.deg2rad(degrees)
+
+            # Rotation matrix
+            cos_angle = np.cos(radians)
+            sin_angle = np.sin(radians)
+            rotation_matrix = np.array([[cos_angle, -sin_angle], [sin_angle, cos_angle]])
+
+            # Image center (pivot point)
+            image_center = np.array([image_size[1] / 2, image_size[0] / 2])  # (x_center, y_center)
+
+            # Extract corners of all bounding boxes
+            top_left = boxes[:, [1, 0]]  # (x_min, y_min)
+            top_right = boxes[:, [3, 0]]  # (x_max, y_min)
+            bottom_left = boxes[:, [1, 2]]  # (x_min, y_max)
+            bottom_right = boxes[:, [3, 2]]  # (x_max, y_max)
+
+            # Stack all corners together: shape (N, 4, 2)
+            corners = np.stack([top_left, top_right, bottom_left, bottom_right], axis=1)
+
+            # Translate corners so the center of the image is the origin
+            translated_corners = corners - image_center
+
+            # Rotate all corners using the rotation matrix
+            rotated_corners = np.dot(translated_corners, rotation_matrix.T)
+
+            # Translate corners back to the original position
+            rotated_corners += image_center
+
+            # Get the new bounding boxes by finding min/max coordinates of the rotated corners
+            new_x_min = np.min(rotated_corners[:, :, 0], axis=1)
+            new_y_min = np.min(rotated_corners[:, :, 1], axis=1)
+            new_x_max = np.max(rotated_corners[:, :, 0], axis=1)
+            new_y_max = np.max(rotated_corners[:, :, 1], axis=1)
+
+            # Stack the new bounding boxes
+            rotated_boxes = np.stack([new_y_min, new_x_min, new_y_max, new_x_max], axis=1)
+
+            return rotated_boxes
+
+        def _resize(rotated_boxes, original_size, new_size):
+            """
+            Rescale bounding boxes after the image is rotated and resized to fit the entire original image.
+
+            Args:
+                rotated_boxes (numpy.ndarray): A numpy array of shape (N, 4) with bounding boxes after rotation,
+                                               where each row is [y_min, x_min, y_max, x_max].
+                original_size (tuple): A tuple (width, height) representing the original size of the image.
+                new_size (tuple): A tuple (width, height) representing the size of the rotated image.
+
+            Returns:
+                numpy.ndarray: A numpy array of shape (N, 4), where each row is the rescaled bounding box
+                               [scaled_y_min, scaled_x_min, scaled_y_max, scaled_x_max].
+            """
+            # Original image dimensions
+            w, h = original_size
+
+            # Calculate the new width and height after rotation
+            new_w, new_h = new_size
+
+            # Image centers (before and after rotation)
+            original_center = np.array([w / 2, h / 2])
+            new_center = np.array([new_w / 2, new_h / 2])
+
+            # Compute scaling factors for width and height
+            scale_x = new_w / w
+            scale_y = new_h / h
+
+            # Get box centers and dimensions
+            x_min = rotated_boxes[:, 1]
+            y_min = rotated_boxes[:, 0]
+            x_max = rotated_boxes[:, 3]
+            y_max = rotated_boxes[:, 2]
+
+            box_centers = np.stack([(x_min + x_max) / 2, (y_min + y_max) / 2], axis=1)
+            box_dims = np.stack([x_max - x_min, y_max - y_min], axis=1)
+
+            # Translate the box centers relative to the original image center
+            translated_centers = box_centers - original_center
+
+            # Scale the box centers and dimensions
+            scaled_centers = translated_centers * [scale_x, scale_y] + new_center
+            scaled_dims = box_dims * [scale_x, scale_y]
+
+            # Compute new bounding boxes
+            new_x_min = scaled_centers[:, 0] - scaled_dims[:, 0] / 2
+            new_x_max = scaled_centers[:, 0] + scaled_dims[:, 0] / 2
+            new_y_min = scaled_centers[:, 1] - scaled_dims[:, 1] / 2
+            new_y_max = scaled_centers[:, 1] + scaled_dims[:, 1] / 2
+
+            # Stack new bounding boxes
+            scaled_boxes = np.stack([new_y_min, new_x_min, new_y_max, new_x_max], axis=1)
+
+            return scaled_boxes
+
+        if do_rotate:
+            img = img.rotate(degrees, expand=True, fillcolor=self.fill_color, resample=Image.BILINEAR)
+
+            if 'bbox' in annotations:
+                new_image_size = img.size
+                new_bboxs = _rotate(annotations['bbox'], orig_image_size, degrees)
+                new_bboxs = _resize(new_bboxs, orig_image_size, new_image_size)
+                annotations['bbox'] = new_bboxs
+
+        return img, annotations
+
+
 def resolve_fill_color(fill_color, img_mean=IMAGENET_DEFAULT_MEAN):
     if isinstance(fill_color, tuple):
         assert len(fill_color) == 3
@@ -275,6 +410,31 @@ def transforms_coco_train(
 
     image_tfl = [
         RandomFlip(horizontal=True, prob=0.5),
+        RandomResizePad(
+            target_size=img_size, interpolation=interpolation, fill_color=fill_color),
+        ImageToNumpy(),
+    ]
+
+    assert use_prefetcher, "Only supporting prefetcher usage right now"
+
+    image_tf = Compose(image_tfl)
+    return image_tf
+
+
+def transforms_documents_train(
+        img_size=224,
+        interpolation='random',
+        use_prefetcher=False,
+        fill_color='mean',
+        mean=IMAGENET_DEFAULT_MEAN,
+        std=IMAGENET_DEFAULT_STD,
+        rotation_degrees=2
+):
+
+    fill_color = resolve_fill_color(fill_color, mean)
+
+    image_tfl = [
+        RandomRotate(degrees=rotation_degrees, prob=0.5, fill_color=fill_color),
         RandomResizePad(
             target_size=img_size, interpolation=interpolation, fill_color=fill_color),
         ImageToNumpy(),
