@@ -194,5 +194,7 @@ def create_evaluator(name, dataset, distributed=False, pred_yxyx=False):
         return CocoEvaluator(dataset, distributed=distributed, pred_yxyx=pred_yxyx)
     elif 'openimages' in name:
         return OpenImagesEvaluator(dataset, distributed=distributed, pred_yxyx=pred_yxyx)
+    elif 'laynet' in name:  # publaynet and doclaynet
+        return CocoEvaluator(dataset, distributed=distributed, pred_yxyx=pred_yxyx)
     else:
         return PascalEvaluator(dataset, distributed=distributed, pred_yxyx=pred_yxyx)
