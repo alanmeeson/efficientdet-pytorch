@@ -93,7 +93,11 @@ def create_dataset(name, root, splits=('train', 'val')):
                 parser=create_parser(dataset_cfg.parser, cfg=parser_cfg)
             )
     elif name.startswith('publaynet'):
-        dataset_cfg = PubLayNetCfg()
+
+        if 'Test' in name:
+            dataset_cfg = PubLayNetTestCfg()
+        else:
+            dataset_cfg = PubLayNetCfg()
 
         for s in splits:
             if s not in dataset_cfg.splits:
