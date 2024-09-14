@@ -12,7 +12,6 @@ class PubLayNetCfg:
     variant: str = 'NoTestSet'
     parser: str = 'coco'
     num_classes: int = 5  # {0: "Text", 1: "Title", 2: "List", 3:"Table", 4:"Figure"}
-    splits: Dict[str, dict] = None
     splits: Dict[str, dict] = field(default_factory=lambda: dict(
         train=dict(ann_filename='train.json', img_dir='train', has_labels=True),
         val=dict(ann_filename='val.json', img_dir='val', has_labels=True),
@@ -25,11 +24,21 @@ class PubLayNetTestCfg:
     variant: str = 'TestSet'
     parser: str = 'coco'
     num_classes: int = 5  # {0: "Text", 1: "Title", 2: "List", 3:"Table", 4:"Figure"}
-    splits: Dict[str, dict] = None
     splits: Dict[str, dict] = field(default_factory=lambda: dict(
         train=dict(ann_filename='train.json', img_dir='train', has_labels=True),
         val=dict(ann_filename='val.json', img_dir='val', has_labels=True),
         test=dict(ann_filename='test.json', img_dir='test', has_labels=True),
+    ))
+
+
+@dataclass
+class DocLayNetCfg:
+    parser: str = 'coco'
+    num_classes: int = 11
+    splits: Dict[str, dict] = field(default_factory=lambda: dict(
+        train=dict(ann_filename='COCO/train.json', img_dir='PNG', has_labels=True),
+        val=dict(ann_filename='COCO/val.json', img_dir='PNG', has_labels=True),
+        test=dict(ann_filename='COCO/test.json', img_dir='PNG', has_labels=True),
     ))
 
 
