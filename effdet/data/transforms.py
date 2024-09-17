@@ -224,9 +224,12 @@ class RandomRotate:
         self.prob = prob
 
     def _get_params(self):
-        do_rotate = random.random() < self.prob
-        degrees = self.degrees * ((random.random() - 0.5) * 2) if do_rotate else 0.0
-        return do_rotate, degrees
+        if (self.degrees > 0.0001) and (self.prob > 0.0001):
+            do_rotate = random.random() < self.prob
+            degrees = self.degrees * ((random.random() - 0.5) * 2) if do_rotate else 0.0
+            return do_rotate, degrees
+        else:
+            return False, 0
 
     def __call__(self, img, annotations: dict):
         do_rotate, degrees = self._get_params()

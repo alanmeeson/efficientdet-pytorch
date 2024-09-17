@@ -166,6 +166,8 @@ parser.add_argument('--recount', type=int, default=1,
                     help='Random erase count (default: 1)')
 parser.add_argument('--train-interpolation', type=str, default='random',
                     help='Training interpolation (random, bilinear, bicubic default: "random")')
+parser.add_argument('--rotation-degrees', type=float, default=2.,
+                    help='Randomly rotate image around center')
 
 # loss
 parser.add_argument('--smoothing', type=float, default=None, help='override model config label smoothing')
@@ -533,7 +535,8 @@ def create_datasets_and_loaders(
                 use_prefetcher=args.prefetcher,
                 fill_color=input_config['fill_color'],
                 mean=input_config['mean'],
-                std=input_config['std']
+                std=input_config['std'],
+                rotation_degrees=args.rotation_degrees
         )
 
 
