@@ -34,7 +34,7 @@ class PubLayNetTestCfg:
 @dataclass
 class DocLayNetCfg:
     parser: str = 'coco'
-    num_classes: int = 11
+    num_classes: int = 11  # {1: "Caption", 2: "Footnote", 3: "Formula", 4: "List-item", 5: "Page-footer", 6: "Page-header", 7: "Picture", 8: "Section-header", 9: "Table", 10: "Text", 11: "Title"}
     splits: Dict[str, dict] = field(default_factory=lambda: dict(
         train=dict(ann_filename='COCO/train.json', img_dir='PNG', has_labels=True),
         val=dict(ann_filename='COCO/val.json', img_dir='PNG', has_labels=True),
